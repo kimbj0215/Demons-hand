@@ -1,9 +1,12 @@
 import os
+from dotenv import load_dotenv
 from supabase import create_client, Client
 
-SUPABASE_URL = "https://najcspwedgqmopnjkhht.supabase.co"
-SUPABASE_KEY = "sb_publishable_Hf0T9DUTjp7WkRdp2GIF-A_WW59gJEc"
-print(f"내 URL 확인: [{SUPABASE_URL}]")
+load_dotenv()
+
+SUPABASE_URL = os.getenv("MY_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("MY_SUPABASE_KEY")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def show_login_screen():
