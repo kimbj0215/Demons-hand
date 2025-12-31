@@ -27,7 +27,7 @@ def show_login_screen():
 
         if len(user_data) > 0:
             print(">> 로그인 성공!")
-            return True, user_data[0]['user_id'], user_data[0]['nickname']
+            return True, user_data[0]['user_id'], user_data[0]['nickname'], user_data[0]['current_stage'], user_data[0]['user_hp']
         else:
             print(">> 로그인 실패: 아이디나 비밀번호를 확인하세요.")
             return False, None
