@@ -5,23 +5,26 @@ from typing import List, Optional
 # 1. 상수 및 기본 설정 (Constants)
 # ==========================================
 # 카드 무늬
-SUITS = ['Spades', 'Hearts', 'Diamonds', 'Clubs']
-# 카드 숫자 (11=J, 12=Q, 13=K, 14=A) -> A를 14로 하면 크기 비교가 쉬워집니다.
-RANKS = list(range(2, 15)) 
-
+CARD_TYPES = {
+    "DIAMOND": "♦",  # 다이아몬드 모양
+    "FIRE": "🔥",    # 불꽃 모양
+    "MOON": "🌙",     # 달 모양
+    "SUN": "☀"     # 해/폭발 모양
+}
+ 
 # ==========================================
 # 2. 카드 및 덱 시스템 (Card & Deck)
 # ==========================================
 class Card:
     """카드 한 장을 나타내는 클래스"""
-    def __init__(self, suit: str, rank: int):
-        self.suit = suit
-        self.rank = rank
+    def __init__(self, name: str, value: int, card_type: str):
+        self.name = name        # 카드 이름
+        self.value = value      # 좌측 하단 숫자 (위력)
+        self.card_type = card_type # 우측 하단 아이콘 (속성)
 
     def __repr__(self):
-        # 출력했을 때 보여질 모습 (예: 'Hearts 10', 'Spades A')
-        rank_str = {11: 'J', 12: 'Q', 13: 'K', 14: 'A'}.get(self.rank, str(self.rank))
-        return f"[{self.suit} {rank_str}]"
+        # 출력 예: [부족민 | 2 | 자원(♦)]
+        return f"[{self.name} | ⚔️{self.value} | {self.card_type}]"
 
 class Deck:
     """52장의 카드를 관리하는 덱 클래스"""
@@ -30,25 +33,37 @@ class Deck:
         self.reset()
 
     def reset(self):
-        """덱을 52장으로 초기화하고 섞습니다."""
-        self.cards = [Card(suit, rank) for suit in SUITS for rank in RANKS]
+        """사진에 있는 느낌대로 카드 목록을 생성합니다."""
+        self.cards = []
+        
+        card_data = [
+            ("", 2, CARD_TYPES["RESOURCE"]),
+            ("", 3, CARD_TYPES["RESOURCE"]),
+            ("", 6, CARD_TYPES["ATTACK"]),
+            ("", 7, CARD_TYPES["SPECIAL"]),
+            ("", 9, CARD_TYPES["MAGIC"]),
+            ("", 4, CARD_TYPES["ATTACK"]),
+            ("", 5, CARD_TYPES["MAGIC"]),
+            ("", 1, CARD_TYPES["RESOURCE"]),
+        ]
+
+        # 덱에 카드를 채워넣음 (테스트를 위해 각 카드를 3장씩 넣음)
+        for name, val, c_type in card_data:
+            for _ in range(3): 
+                self.cards.append(Card(name, val, c_type))
+        
         self.shuffle()
 
     def shuffle(self):
-        """덱을 무작위로 섞습니다."""
         random.shuffle(self.cards)
 
     def draw(self, count: int) -> List[Card]:
-        """지정한 장수(count)만큼 카드를 뽑아 리스트로 반환합니다."""
         drawn_cards = []
         for _ in range(count):
             if self.cards:
                 drawn_cards.append(self.cards.pop())
         return drawn_cards
 
-# ==========================================
-# 3. 인장 (아이템) 시스템 (Insignia)
-# ==========================================
 class Insignia:
     """게임 내 파워업 아이템(인장) 클래스"""
     def __init__(self, name: str, description: str, effect_type: str, value: float):
@@ -79,22 +94,6 @@ class Player:
     
     def is_alive(self) -> bool:
         return self.current_hp > 0
-
-class Enemy:
-    """적(몬스터) 정보를 관리하는 클래스"""
-    def __init__(self, name: str, max_hp: int):
-        self.name = name
-        self.max_hp = max_hp
-        self.current_hp = max_hp
-
-    def take_damage(self, amount: int):
-        self.current_hp = max(0, self.current_hp - amount)
-
-    def is_alive(self) -> bool:
-        return self.current_hp > 0
-
-    def __repr__(self):
-        return f"[{self.name} (HP: {self.current_hp}/{self.max_hp})]"
 
 
 if __name__ == "__main__":
