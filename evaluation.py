@@ -1,147 +1,146 @@
-from collections import Counter
 from typing import List, Tuple
-from entities import Card
+from collections import Counter
+from entities import Card  # entities.py에서 Card 클래스 가져오기
 
 # ==========================================
-# 1. 족보 별 점수표 (상수)
+# 1. 족보 점수 및 설정
 # ==========================================
-# 게임 밸런스에 맞춰 점수를 수정할 수 있습니다.
 HAND_SCORES = {
-    "Royal Flush": 2000,
-    "Straight Flush": 600,
-    "Four of a Kind": 300, # 포커 용어: 포카드
-    "Full House": 150,
-    "Flush": 120,
-    "Straight": 100,
-    "Three of a Kind": 60, # 포커 용어: 트리플
-    "Two Pair": 30,
-    "One Pair": 10,
-    "High Card": 5
+    "Serious Punch": 2000,    # 로열 스티플 (0 포함)
+    "TSET3": 600,             # 스티플
+    "Triple and Couple": 300, # 풀하우스
+    "TEST1": 150,             # 플러시
+    "TEST2": 120,             # 스트레이트
+    "Family": 100,            # 포카드
+    "Triple": 60,             # 트리플
+    "Couple Set": 40,         # 투페어
+    "Couple": 20,             # 원페어
+    "Solo": 10,               # 하이카드
 }
 
 # ==========================================
-# 2. 보조 함수들 (판별 로직)
+# 2. 판별 핵심 로직 (변수명 수정됨)
 # ==========================================
-def is_flush(cards: List[Card]) -> bool:
-    """5장의 무늬가 모두 같은지 확인"""
-    first_suit = cards[0].suit
+def get_power(value: int) -> int:
+    """0을 가장 높은 숫자(13)로 변환"""
+    return 13 if value == 0 else value
+
+def is_TEST1(cards: List[Card]) -> bool:
+    """[TEST1] 무늬(card_type)가 모두 같은지 확인"""
+    if not cards: return False
+    
+    # [수정] card.suit -> card.card_type
+    first_type = cards[0].card_type
     for card in cards[1:]:
-        if card.suit != first_suit:
+        if card.card_type != first_type:
             return False
     return True
 
-def is_straight(ranks: List[int]) -> bool:
-    """숫자가 연속적인지 확인"""
-    # 숫자 오름차순 정렬
-    sorted_ranks = sorted(ranks)
+def is_TEST2(values: List[int]) -> bool:
+    """[TEST2] 숫자가 연속적인지 확인 (Straight)"""
+    powers = [get_power(v) for v in values]
+    sorted_powers = sorted(powers)
     
-    # 1. 일반적인 스트레이트 (예: 2,3,4,5,6)
-    # 가장 큰 숫자와 작은 숫자의 차이가 4이고, 중복이 없으면 스트레이트
-    if len(set(sorted_ranks)) == 5 and (sorted_ranks[-1] - sorted_ranks[0] == 4):
+    # 중복이 없고, (최대값 - 최소값)이 4이면 연속된 숫자임
+    if len(set(sorted_powers)) == 5 and (sorted_powers[-1] - sorted_powers[0] == 4):
         return True
-        
-    # 2. 백스트레이트 (A, 2, 3, 4, 5) -> 시스템상 A는 14
-    # 정렬하면 [2, 3, 4, 5, 14]가 됨
-    if sorted_ranks == [2, 3, 4, 5, 14]:
-        return True
-        
     return False
 
-# ==========================================
-# 3. 핵심 판별 함수
-# ==========================================
 def evaluate_hand(hand: List[Card]) -> Tuple[str, int]:
-    """
-    5장의 카드를 받아 (족보이름, 점수)를 반환합니다.
-    높은 족보부터 순서대로 검사합니다.
-    """
+    """카드 5장을 받아 족보 이름과 점수를 반환"""
+    
     if len(hand) != 5:
-        raise ValueError("카드는 반드시 5장이어야 합니다.")
+        return "Solo", 10
 
-    # 계산을 편하게 하기 위해 숫자(rank)만 따로 리스트로 만듭니다.
-    ranks = [card.rank for card in hand]
+    # 1. 숫자(Value)만 추출 및 파워 변환
+    # [수정] card.rank -> card.value 사용
+    raw_values = [card.value for card in hand]
+    powers = [get_power(v) for v in raw_values]
     
-    # 숫자별 개수를 셉니다. (예: [10, 10, 5, 2, 2] -> {10:2, 2:2, 5:1})
-    rank_counts = Counter(ranks)
-    # 개수를 기준으로 내림차순 정렬 (예: 풀하우스면 (3, 2) 형태가 됨)
-    # values()는 개수만 가져옵니다. sorted(..., reverse=True)로 큰 개수부터 정렬
-    counts = sorted(rank_counts.values(), reverse=True)
+    # 2. 같은 숫자 개수 세기
+    counts = sorted(Counter(powers).values(), reverse=True)
 
-    # 상태 확인
-    flush_check = is_flush(hand)
-    straight_check = is_straight(ranks)
+    # 3. 플러시(TEST1), 스트레이트(TEST2) 여부 미리 계산
+    check_test1 = is_TEST1(hand)
+    check_test2 = is_TEST2(raw_values)
 
-    # --- 판별 시작 (높은 순서대로) ---
+    # 4. 족보 판별 (점수가 높은 순서대로)
+    hand_name = "Solo"
 
-    # 1. 로열 플러시 & 스트레이트 플러시
-    if flush_check and straight_check:
-        # 14(Ace)가 포함된 스트레이트 플러시라면 로열 플러시
-        if 14 in ranks and 13 in ranks: # A와 K가 포함됨
-            hand_name = "Royal Flush"
-        else:
-            hand_name = "Straight Flush"
-    
-    # 2. 포카드 (같은 숫자 4장) -> counts가 [4, 1]
-    elif counts == [4, 1]:
-        hand_name = "Four of a Kind"
-        
-    # 3. 풀하우스 (같은 숫자 3장 + 2장) -> counts가 [3, 2]
+    # [2000] Serious Punch (0 포함 + 무늬같음 + 연속)
+    if check_test1 and check_test2 and (13 in powers):
+        hand_name = "Serious Punch"
+    elif check_test1 and check_test2:
+        hand_name = "TSET3"
     elif counts == [3, 2]:
-        hand_name = "Full House"
-        
-    # 4. 플러시
-    elif flush_check:
-        hand_name = "Flush"
-        
-    # 5. 스트레이트
-    elif straight_check:
-        hand_name = "Straight"
-        
-    # 6. 트리플 (같은 숫자 3장) -> counts가 [3, 1, 1]
+        hand_name = "Triple and Couple"
+    elif check_test1:
+        hand_name = "TEST1"
+    elif check_test2:
+        hand_name = "TEST2"
+    elif counts == [4, 1]:
+        hand_name = "Family"
     elif counts == [3, 1, 1]:
-        hand_name = "Three of a Kind"
-        
-    # 7. 투페어 (같은 숫자 2장, 2장) -> counts가 [2, 2, 1]
+        hand_name = "Triple"
     elif counts == [2, 2, 1]:
-        hand_name = "Two Pair"
-        
-    # 8. 원페어 (같은 숫자 2장) -> counts가 [2, 1, 1, 1]
+        hand_name = "Couple Set"
     elif counts == [2, 1, 1, 1]:
-        hand_name = "One Pair"
-        
-    # 9. 하이카드 (꽝)
+        hand_name = "Couple"
     else:
-        hand_name = "High Card"
+        hand_name = "Solo"
 
     return hand_name, HAND_SCORES[hand_name]
 
 # ==========================================
-# 테스트 코드 (이 파일을 실행해서 로직 검증)
+# 3. 실행 테스트 코드
 # ==========================================
 if __name__ == "__main__":
-    # 테스트용 카드 덱 생성은 필요 없지만 Card 객체는 필요함
-    print("--- 족보 판별기 테스트 ---")
+    print("=== 🃏 entities.Card 연동 족보 테스트 시작 ===")
 
-    # 케이스 1: 풀하우스 (10 세 장, 5 두 장)
-    test_hand_1 = [
-        Card("Spades", 10), Card("Hearts", 10), Card("Diamonds", 10),
-        Card("Clubs", 5), Card("Spades", 5)
+    # [중요] Card 생성 시 (name, value, card_type) 순서를 지켜야 함
+    test_cases = [
+        ("Serious Punch", [
+            Card("T", 0, "♦"), Card("T", 12, "♦"), Card("T", 11, "♦"), Card("T", 10, "♦"), Card("T", 9, "♦")
+        ]),
+        ("TSET3", [
+            Card("T", 1, "🔥"), Card("T", 2, "🔥"), Card("T", 3, "🔥"), Card("T", 4, "🔥"), Card("T", 5, "🔥")
+        ]),
+        ("Triple and Couple", [
+            Card("T", 7, "🌙"), Card("T", 7, "☀"), Card("T", 7, "♦"), Card("T", 2, "🌙"), Card("T", 2, "🔥")
+        ]),
+        ("TEST1", [
+            Card("T", 1, "☀"), Card("T", 5, "☀"), Card("T", 8, "☀"), Card("T", 10, "☀"), Card("T", 12, "☀")
+        ]),
+        ("TEST2", [
+            Card("T", 0, "♦"), Card("T", 12, "🔥"), Card("T", 11, "🌙"), Card("T", 10, "☀"), Card("T", 9, "♦")
+        ]),
+        ("Family", [
+            Card("T", 5, "♦"), Card("T", 5, "🔥"), Card("T", 5, "🌙"), Card("T", 5, "☀"), Card("T", 9, "♦")
+        ]),
+        ("Triple", [
+            Card("T", 3, "♦"), Card("T", 3, "🔥"), Card("T", 3, "🌙"), Card("T", 8, "☀"), Card("T", 1, "♦")
+        ]),
+        ("Couple Set", [
+            Card("T", 8, "♦"), Card("T", 8, "🔥"), Card("T", 4, "🌙"), Card("T", 4, "☀"), Card("T", 1, "♦")
+        ]),
+        ("Couple", [
+            Card("T", 11, "♦"), Card("T", 11, "🔥"), Card("T", 1, "🌙"), Card("T", 1, "☀"), Card("T", 9, "♦")
+        ]),
+        ("Solo", [
+            Card("T", 1, "♦"), Card("T", 3, "🔥"), Card("T", 5, "🌙"), Card("T", 8, "☀"), Card("T", 11, "♦")
+        ]),
     ]
-    name, score = evaluate_hand(test_hand_1)
-    print(f"결과 1: {name} (점수: {score}) -> 예상: Full House")
 
-    # 케이스 2: 스트레이트 (A, 2, 3, 4, 5) - 백스트레이트
-    test_hand_2 = [
-        Card("Spades", 14), Card("Hearts", 2), Card("Diamonds", 3),
-        Card("Clubs", 4), Card("Spades", 5)
-    ]
-    name, score = evaluate_hand(test_hand_2)
-    print(f"결과 2: {name} (점수: {score}) -> 예상: Straight")
+    success_cnt = 0
+    for expected, hand in test_cases:
+        result_name, score = evaluate_hand(hand)
+        
+        if result_name == expected:
+            print(f"✅ [성공] {expected:<17} | 점수: {score}")
+            success_cnt += 1
+        else:
+            print(f"❌ [실패] 기대값: {expected} != 결과: {result_name}")
+            print(f"   패: {hand}")
 
-    # 케이스 3: 꽝 (하이카드)
-    test_hand_3 = [
-        Card("Spades", 14), Card("Hearts", 2), Card("Diamonds", 9),
-        Card("Clubs", 4), Card("Spades", 7)
-    ]
-    name, score = evaluate_hand(test_hand_3)
-    print(f"결과 3: {name} (점수: {score}) -> 예상: High Card")
+    print("-" * 40)
+    print(f"총 {len(test_cases)}개 케이스 중 {success_cnt}개 통과")

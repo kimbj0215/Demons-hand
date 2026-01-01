@@ -4,7 +4,7 @@ from typing import List, Optional
 # ==========================================
 # 1. 상수 및 기본 설정 (Constants)
 # ==========================================
-# 카드 무늬
+
 CARD_TYPES = {
     "DIAMOND": "♦",  # 다이아몬드 모양
     "FIRE": "🔥",    # 불꽃 모양
@@ -12,9 +12,6 @@ CARD_TYPES = {
     "SUN": "☀"     # 해/폭발 모양
 }
  
-# ==========================================
-# 2. 카드 및 덱 시스템 (Card & Deck)
-# ==========================================
 class Card:
     """카드 한 장을 나타내는 클래스"""
     def __init__(self, name: str, value: int, card_type: str):
@@ -33,24 +30,31 @@ class Deck:
         self.reset()
 
     def reset(self):
-        """사진에 있는 느낌대로 카드 목록을 생성합니다."""
         self.cards = []
+        types = list(CARD_TYPES.values())
         
-        card_data = [
-            ("", 2, CARD_TYPES["RESOURCE"]),
-            ("", 3, CARD_TYPES["RESOURCE"]),
-            ("", 6, CARD_TYPES["ATTACK"]),
-            ("", 7, CARD_TYPES["SPECIAL"]),
-            ("", 9, CARD_TYPES["MAGIC"]),
-            ("", 4, CARD_TYPES["ATTACK"]),
-            ("", 5, CARD_TYPES["MAGIC"]),
-            ("", 1, CARD_TYPES["RESOURCE"]),
-        ]
+        # 숫자별 이름 (없으면 그냥 '병사'로 통일)
+        name_map = {
+            1: "test1",
+            2: "test2",
+            3: "test3",
+            4: "test4",
+            5: "test5",
+            6: "test6",
+            7: "test7",
+            8: "test8",
+            9: "test9",
+            10: "test10",
+            11: "test11",
+            12: "test12",
+            0: "test0"
+        }
 
-        # 덱에 카드를 채워넣음 (테스트를 위해 각 카드를 3장씩 넣음)
-        for name, val, c_type in card_data:
-            for _ in range(3): 
-                self.cards.append(Card(name, val, c_type))
+        for rank in range(0,13): # 1~13
+            for c_type in types:
+
+                # 2. 카드 추가
+                self.cards.append(Card(name_map[rank], rank, c_type))
         
         self.shuffle()
 
@@ -58,10 +62,17 @@ class Deck:
         random.shuffle(self.cards)
 
     def draw(self, count: int) -> List[Card]:
+        self.shuffle
         drawn_cards = []
+        
         for _ in range(count):
-            if self.cards:
-                drawn_cards.append(self.cards.pop())
+            if len(self.cards) > 0:
+                card = self.cards.pop()
+                drawn_cards.append(card)
+            else:
+                print("더 이상 뽑을 카드가 없습니다!") 
+                break 
+                
         return drawn_cards
 
 class Insignia:
@@ -75,16 +86,63 @@ class Insignia:
     def __repr__(self):
         return f"<Insignia: {self.name}>"
 
-# ==========================================
-# 4. 캐릭터 (Player & Enemy)
-# ==========================================
 class Player:
     """플레이어 정보를 관리하는 클래스"""
     def __init__(self, max_hp: int = 100):
         self.max_hp = max_hp
         self.current_hp = max_hp
-        self.hand: List[Card] = []          # 현재 손에 쥐고 있는 카드들
-        self.insignia_list: List[Insignia] = [] # 보유한 인장 목록
+        self.hand: List[Card] = [] 
+        self.insignia_list: List[Insignia] = [] # 아이템 목록
+        self.used_reroll_count = 0     
+        self.default_reroll_limit = 3  
+
+    @property
+    def max_reroll_count(self):
+        bonus = 0
+        # 인벤토리에 '인장' 아이템이 있는지 확인
+        for item in self.insignia_list:
+            # 아이템의 효과 타입이 '리롤 횟수 증가(reroll_plus)'인지 확인
+            if item.effect_type == "reroll_plus":
+                # 아이템에 설정된 수치(value)만큼 더하기 (1.0 -> 1, 2.0 -> 2)
+                bonus += int(item.value)
+        
+        return self.default_reroll_limit + bonus
+    
+    def discard_cards(self, indices: list, deck):
+        if self.used_reroll_count >= self.max_reroll_count:
+            print(f"🚫 리롤 횟수 소진! ({self.used_reroll_count}/{self.max_reroll_count})")
+            return
+        indices.sort(reverse=True)
+        
+        for idx in indices:
+            if 0 <= idx < len(self.hand):
+                self.hand.pop(idx) 
+
+        draw_amount = self.get_draw_count()
+
+        if draw_amount > 0:
+            new_cards = deck.draw(draw_amount)
+            self.hand.extend(new_cards)
+        self.used_reroll_count += 1
+
+    def get_draw_count(self) -> int:
+        # 1. 기본 장수 설정 (무조건 8장)
+        target_hand_size = 8 
+        current_hand_size = len(self.hand)
+        draw_amount = target_hand_size - current_hand_size
+
+        if draw_amount < 0:
+            draw_amount = 0
+        
+        # 2. 인장 아이템 효과 확인
+        for item in self.insignia_list:
+            
+            # 아이템 효과가 'draw_plus'(손 크기 증가)인지 확인
+            if item.effect_type == "draw_plus":
+                # value가 float(1.0)일 수 있으므로 int로 변환해서 더함
+                draw_amount += int(item.value)
+
+        return draw_amount
 
     def take_damage(self, amount: int):
         self.current_hp = max(0, self.current_hp - amount)
