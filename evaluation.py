@@ -9,7 +9,7 @@ HAND_SCORES = {
     "Serious Punch": 2000,    # 로열 스티플 (0 포함)
     "TSET3": 600,             # 스티플
     "Triple and Couple": 300, # 풀하우스
-    "TEST1": 150,             # 플러시
+    "Type Set": 150,             # 플러시
     "TEST2": 120,             # 스트레이트
     "Family": 100,            # 포카드
     "Triple": 60,             # 트리플
@@ -25,8 +25,8 @@ def get_power(value: int) -> int:
     """0을 가장 높은 숫자(13)로 변환"""
     return 13 if value == 0 else value
 
-def is_TEST1(cards: List[Card]) -> bool:
-    """[TEST1] 무늬(card_type)가 모두 같은지 확인"""
+def is_Type_Set(cards: List[Card]) -> bool:
+    """[Type Set] 무늬(card_type)가 모두 같은지 확인"""
     if not cards: return False
     
     # [수정] card.suit -> card.card_type
@@ -60,22 +60,22 @@ def evaluate_hand(hand: List[Card]) -> Tuple[str, int]:
     # 2. 같은 숫자 개수 세기
     counts = sorted(Counter(powers).values(), reverse=True)
 
-    # 3. 플러시(TEST1), 스트레이트(TEST2) 여부 미리 계산
-    check_test1 = is_TEST1(hand)
+    # 3. 플러시(Type Set), 스트레이트(TEST2) 여부 미리 계산
+    check_type_set = is_Type_Set(hand)
     check_test2 = is_TEST2(raw_values)
 
     # 4. 족보 판별 (점수가 높은 순서대로)
     hand_name = "Solo"
 
     # [2000] Serious Punch (0 포함 + 무늬같음 + 연속)
-    if check_test1 and check_test2 and (13 in powers):
+    if check_type_set and check_test2 and (13 in powers):
         hand_name = "Serious Punch"
-    elif check_test1 and check_test2:
+    elif check_type_set and check_test2:
         hand_name = "TSET3"
     elif counts == [3, 2]:
         hand_name = "Triple and Couple"
-    elif check_test1:
-        hand_name = "TEST1"
+    elif check_type_set:
+        hand_name = "Type Set"
     elif check_test2:
         hand_name = "TEST2"
     elif counts == [4, 1]:
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         ("Triple and Couple", [
             Card("T", 7, "🌙"), Card("T", 7, "☀"), Card("T", 7, "♦"), Card("T", 2, "🌙"), Card("T", 2, "🔥")
         ]),
-        ("TEST1", [
+        ("Type Set", [
             Card("T", 1, "☀"), Card("T", 5, "☀"), Card("T", 8, "☀"), Card("T", 10, "☀"), Card("T", 12, "☀")
         ]),
         ("TEST2", [
