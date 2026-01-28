@@ -6,8 +6,8 @@ from supabase import create_client, Client
 
 # 1. Supabase 연결 설정
 load_dotenv()
-url = os.getenv("MY_SUPABASE_URL")
-key = os.getenv("MY_SUPABASE_KEY")
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(url, key)
 
