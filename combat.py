@@ -62,7 +62,7 @@ def battle_logic(player, monster):
     return "ERROR"
 
 
-def start_game_process(user_id, user_nick, user_stage, user_hp):
+def start_game_process(screen, user_id, user_nick, user_stage, user_hp):
     if not supabase:
         return
     try:
