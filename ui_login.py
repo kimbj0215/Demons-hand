@@ -1,7 +1,8 @@
 import pygame
 import sys
+import bcrypt
 from login import supabase 
-import createaccount
+import ui_createaccount
 
 # ==========================================
 # 색상 및 폰트 설정 (전역 변수로 뺌)
@@ -68,18 +69,22 @@ def show_login_window(screen):
                     pygame.display.flip()
 
                     try:
-                        response = supabase.table("users") \
-                            .select("*") \
-                            .eq("user_id", user_id) \
-                            .eq("password", user_pw) \
-                            .execute()
-                        
+                        response = supabase.table("users").select("*").eq("user_id", input_id).execute()
+        
                         if len(response.data) > 0:
-                            print(">> 로그인 성공! 메인 게임으로 이동합니다.")
-                            # ★ 핵심: 로그인 성공 시 유저 데이터를 가지고 main.py로 돌아갑니다.
-                            return response.data[0] 
+                            user_data = response.data[0]
+                            stored_hashed_pw = user_data['password'] # DB에 저장된 암호화된 비밀번호
+            
+            # 🌟 2. bcrypt.checkpw 로 입력한 비번과 DB의 암호화된 비번이 맞는지 확인합니다.
+                            if bcrypt.checkpw(input_pw.encode('utf-8'), stored_hashed_pw.encode('utf-8')):
+                                print(">> 로그인 성공!")
+                                return True, user_data['user_id'], user_data['nickname'] # 등등..
+                            else:
+                                print(">> 로그인 실패: 비밀번호가 틀렸습니다.")
+                                return False, None
                         else:
-                            login_message = "실패: 아이디/비번을 확인하세요."
+                            print(">> 로그인 실패: 존재하지 않는 아이디입니다.")
+                            return False, None
                     except Exception as e:
                         login_message = f"에러 발생: {e}"
 
@@ -87,9 +92,14 @@ def show_login_window(screen):
                     print(">> 회원가입 화면으로 이동합니다.")
                     # createaccount.py 안에 있는 회원가입 화면 함수를 실행합니다.
                     try:
-                        createaccount.show_signup_window(screen)
+                        result =ui_createaccount.show_signup_window(screen)
                         # 회원가입이 끝나고 돌아오면 안내 메시지 출력
-                        login_message = "회원가입이 완료되었거나 취소되었습니다."
+                        if result == "success":
+                            login_message = "✨ 회원가입 성공! 이제 로그인해 주세요."
+                        elif result == "cancel":
+                            login_message = "회원가입을 취소했습니다."
+                        else:
+                            login_message = ""
                     except Exception as e:
                         login_message = "회원가입 화면을 불러올 수 없습니다."
                         print(f"회원가입 에러: {e}")    
