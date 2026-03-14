@@ -1,6 +1,7 @@
 import pygame
 import sys
 from login import supabase 
+import createaccount
 
 # ==========================================
 # 색상 및 폰트 설정 (전역 변수로 뺌)
@@ -9,6 +10,7 @@ COLOR_BG = (20, 20, 25)
 COLOR_BOX = (60, 60, 65)
 COLOR_TEXT = (255, 255, 255)
 COLOR_BTN = (100, 30, 30)
+COLOR_SIGNUP = (40, 60, 100)
 COLOR_ACTIVE = (180, 180, 200)
 
 def show_login_window(screen):
@@ -22,10 +24,19 @@ def show_login_window(screen):
     # 화면 크기 가져오기
     WIDTH, HEIGHT = screen.get_size()
 
+    try:
+        bg_image = pygame.image.load("assets/DH_bg.png")
+        # 화면 크기에 딱 맞게 이미지 사이즈 조절
+        bg_image = pygame.transform.scale(bg_image, (WIDTH, HEIGHT))
+    except Exception as e:
+        print(f"배경 로드 실패: {e}")
+        bg_image = None
+
     # 입력창 위치 설정
     id_box = pygame.Rect(WIDTH//2 - 100, 300, 200, 45)
     pw_box = pygame.Rect(WIDTH//2 - 100, 380, 200, 45)
-    login_btn = pygame.Rect(WIDTH//2 - 100, 480, 200, 50)
+    login_btn = pygame.Rect(WIDTH//2 - 100, 450, 200, 50)
+    signup_btn = pygame.Rect(WIDTH//2 - 100, 530, 200, 50)
 
     # 변수 초기화
     user_id = ""
@@ -72,6 +83,17 @@ def show_login_window(screen):
                     except Exception as e:
                         login_message = f"에러 발생: {e}"
 
+                elif signup_btn.collidepoint(event.pos):
+                    print(">> 회원가입 화면으로 이동합니다.")
+                    # createaccount.py 안에 있는 회원가입 화면 함수를 실행합니다.
+                    try:
+                        createaccount.show_signup_window(screen)
+                        # 회원가입이 끝나고 돌아오면 안내 메시지 출력
+                        login_message = "회원가입이 완료되었거나 취소되었습니다."
+                    except Exception as e:
+                        login_message = "회원가입 화면을 불러올 수 없습니다."
+                        print(f"회원가입 에러: {e}")    
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
                     if active_field == "id": user_id = user_id[:-1]
@@ -86,20 +108,19 @@ def show_login_window(screen):
                     else: user_pw += event.unicode
 
         # [B] 화면 그리기 (별도 함수 혹은 여기서 처리)
-        draw_login_screen(screen, font, small_font, id_box, pw_box, login_btn, user_id, user_pw, login_message, active_field)
+        draw_login_screen(screen, font, small_font, id_box, pw_box, login_btn, signup_btn, user_id, user_pw, login_message, active_field, bg_image)
 
         # [C] 화면 업데이트
         pygame.display.flip()
 
-def draw_login_screen(screen, font, small_font, id_box, pw_box, login_btn, user_id, user_pw, login_message, active_field):
+def draw_login_screen(screen, font, small_font, id_box, pw_box, login_btn, signup_btn, user_id, user_pw, login_message, active_field, bg_image):
     """화면 그리는 코드를 깔끔하게 분리"""
     WIDTH = screen.get_width()
     
-    screen.fill(COLOR_BG)
-
-    # 제목
-    title_surface = font.render("DEMON'S HAND", True, (200, 50, 50))
-    screen.blit(title_surface, (WIDTH//2 - title_surface.get_width()//2, 150))
+    if bg_image:
+        screen.blit(bg_image, (0, 0)) # (0, 0) 좌표부터 화면 전체에 덮어씌움
+    else:
+        screen.fill(COLOR_BG)
 
     # 상자 테두리
     id_border = 3 if active_field == "id" else 1
@@ -114,6 +135,10 @@ def draw_login_screen(screen, font, small_font, id_box, pw_box, login_btn, user_
     pygame.draw.rect(screen, COLOR_BTN, login_btn, border_radius=10)
     btn_text = font.render("LOGIN", True, COLOR_TEXT)
     screen.blit(btn_text, (login_btn.centerx - btn_text.get_width()//2, login_btn.centery - btn_text.get_height()//2))
+
+    pygame.draw.rect(screen, COLOR_SIGNUP, signup_btn, border_radius=10)
+    signup_text = font.render("SIGN UP", True, COLOR_TEXT)
+    screen.blit(signup_text, (signup_btn.centerx - signup_text.get_width()//2, signup_btn.centery - signup_text.get_height()//2))
 
     # 텍스트 내용
     id_surf = font.render(user_id, True, COLOR_TEXT)
