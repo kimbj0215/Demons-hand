@@ -65,20 +65,22 @@ def show_login_window(screen):
                     # --- 로그인 시도 ---
                     login_message = "서버 연결 확인 중..."
                     # 화면을 한번 그려서 메시지를 보여줌 (반응성 향상)
-                    draw_login_screen(screen, font, small_font, id_box, pw_box, login_btn, user_id, user_pw, login_message, active_field)
+                    draw_login_screen(screen, font, small_font, id_box, pw_box, login_btn, signup_btn, user_id, user_pw, login_message, active_field, bg_image)
                     pygame.display.flip()
 
                     try:
-                        response = supabase.table("users").select("*").eq("user_id", input_id).execute()
+                        response = supabase.table("users").select("*").eq("user_id", user_id).execute()
         
                         if len(response.data) > 0:
                             user_data = response.data[0]
                             stored_hashed_pw = user_data['password'] # DB에 저장된 암호화된 비밀번호
             
             # 🌟 2. bcrypt.checkpw 로 입력한 비번과 DB의 암호화된 비번이 맞는지 확인합니다.
-                            if bcrypt.checkpw(input_pw.encode('utf-8'), stored_hashed_pw.encode('utf-8')):
+                            if bcrypt.checkpw(user_pw.encode('utf-8'), stored_hashed_pw.encode('utf-8')):
                                 print(">> 로그인 성공!")
-                                return True, user_data['user_id'], user_data['nickname'] # 등등..
+                                del user_data['password']
+                                # 로그인 성공 시 유저 정보를 반환합니다 (비밀번호는 제외)
+                                return user_data
                             else:
                                 print(">> 로그인 실패: 비밀번호가 틀렸습니다.")
                                 return False, None
