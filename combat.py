@@ -1,99 +1,100 @@
 import os
-import time
-import random
+import sys
+import pygame
 from dotenv import load_dotenv
 from supabase import create_client, Client
+
+# 아까 완벽하게 만들어둔 카드/플레이어 로직을 가져옵니다!
+from entities import Deck, Player 
 
 # 1. Supabase 연결 설정
 load_dotenv()
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
-
 supabase: Client = create_client(url, key)
 
-def get_next_stage(current_code):
-    map_num = int(current_code[0]) 
-    stage_num = int(current_code[1])
-    stage_num += 1
-    
-    if stage_num > 9:
-        map_num += 1
-        stage_num = 0
-    return f"{map_num}{stage_num}"
-
-
-def battle_logic(player, monster):
-    """ 실제 치고받고 싸우는 전투 로직 (크리티컬 없음) """
-    
-    print(f"\n{'='*40}")
-    print(f"🔥 전투 시작! [{player['nickname']}] VS [{monster['name']}]")
-    print(f"{'='*40}")
-    print(f"내 정보: HP {player['hp']} / ATK {player['attack']}")
-    print(f"적 정보: HP {monster['hp']} / ATK {monster['attack']}")
-    
-    if monster.get('special_ability'):
-        print(f"⚠️ 특수 능력: {monster['special_ability']}")
-    print(f"{'-'*40}\n")
-    time.sleep(1)
-
-    while player['hp'] > 0 and monster['hp'] > 0:
-        # --- 플레이어 턴 ---
-        damage = player['attack'] + random.randint(-2, 2)
-        if damage < 0: damage = 0
-        monster['hp'] -= damage
-        print(f"🗡️ {player['nickname']} 공격! 💥 {damage} 피해 (적 HP: {max(0, monster['hp'])})")
-
-        if monster['hp'] <= 0:
-            return "VICTORY"
-        
-        time.sleep(0.5)
-
-        # --- 몬스터 턴 ---
-        monster_damage = monster['attack']
-        player['hp'] -= monster_damage
-        print(f"   (내 남은 HP: {max(0, player['hp'])})")
-
-        if player['hp'] <= 0:
-            return "DEFEAT"
-            
-        time.sleep(0.5)
-        print("")
-
-    return "ERROR"
-
-
 def start_game_process(screen, user_id, user_nick, user_stage, user_hp):
-    if not supabase:
-        return
-    try:
+    """맵에서 노드를 클릭하면 이 함수가 실행되어 배틀 화면을 띄웁니다."""
     
-        # 2. 몬스터 정보 가져오기 (monsters 테이블)
-        monster_resp = supabase.table("monsters").select("*").eq("stage_code", user_stage).execute()
+    # ==========================================
+    # 1. 전투 준비 (DB 몬스터 정보 로드 & 카드 덱 세팅)
+    # ==========================================
+    monster = {"name": "Unknown", "hp": 100, "attack": 10} # 기본값 (DB 실패 대비)
+    if supabase:
+        try:
+            monster_resp = supabase.table("monsters").select("*").eq("stage_code", str(user_stage)).execute()
+            if monster_resp.data:
+                monster = monster_resp.data[0]
+        except Exception as e:
+            print(f"DB 오류: {e}")
+
+    # 플레이어와 덱 생성 (방금 만든 entities.py 사용)
+    my_deck = Deck()
+    p1 = Player(max_hp=user_hp)
+    p1.fill_hand(my_deck) # 🌟 시작하자마자 내 손패에 카드 8장을 뽑습니다!
+
+    # ==========================================
+    # 2. 화면 이미지 로드
+    # ==========================================
+    font = pygame.font.SysFont("malgungothic", 30)
+    
+    # 🌟 가지고 계신 배틀맵 이미지 경로를 여기에 적어주세요!
+    bg_path = "assets/battlemap_01.png" 
+    try:
+        bg_image = pygame.image.load(bg_path)
+        bg_image = pygame.transform.scale(bg_image, (1280, 720))
+    except:
+        print("⚠️ 배틀맵 이미지를 찾을 수 없습니다. 임시 배경을 사용합니다.")
+        bg_image = None
+
+    # ==========================================
+    # 3. 배틀 화면 메인 루프
+    # ==========================================
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                
+            # 테스트 편의성: ESC 키를 누르면 전투에서 도망쳐서 다시 맵으로 돌아갑니다!
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    print("🏃 전투에서 도망쳤습니다!")
+                    running = False 
+
+        # --- 화면 그리기 ---
         
-        if not monster_resp.data:
-            print("🎉 축하합니다! 준비된 모든 몬스터를 처치했습니다!")
-            return
+        # 1. 배경 깔기
+        if bg_image:
+            screen.blit(bg_image, (0, 0))
+        else:
+            screen.fill((50, 20, 20)) # 어두운 붉은색 (임시 배경)
 
-        monster = monster_resp.data[0] # 몬스터 정보 확정
+        # 2. 적 몬스터 정보 표시 (화면 상단)
+        enemy_text = font.render(f"적: {monster['name']} (HP: {monster['hp']})", True, (255, 100, 100))
+        screen.blit(enemy_text, (50, 50))
 
-        # 3. 내 캐릭터 생성 (임시 스탯)
-        my_player = {"nickname": user_nick, "hp": user_hp}
+        # 3. 내 캐릭터 정보 표시 (화면 중하단)
+        player_text = font.render(f"나: {user_nick} (HP: {p1.current_hp})", True, (100, 255, 100))
+        screen.blit(player_text, (50, 450))
 
-        # 4. 전투 시작 (위의 battle_logic 함수 호출)
-        result = battle_logic(my_player, monster)
+        # 🌟 4. 내 손패(카드) 주르륵 그리기
+        card_width = 100
+        spacing = 20
+        # 카드가 화면 가운데에 예쁘게 정렬되도록 시작 X 좌표 계산
+        total_width = len(p1.hand) * card_width + (len(p1.hand) - 1) * spacing
+        start_x = (1280 - total_width) // 2 
+        start_y = 520 # 화면 맨 아래쪽
 
-        # 5. 결과 처리 및 저장
-        if result == "VICTORY":
-            print(f"\n🎊 승리했습니다! {monster['name']} 처치 완료!")
+        for i, card in enumerate(p1.hand):
+            card_x = start_x + (i * (card_width + spacing))
             
-            # 다음 스테이지 계산
-            next_stage = get_next_stage(user_stage)
-            
-            # DB 업데이트
-            supabase.table("users").update({"current_stage": next_stage}).eq("user_id", user_id).execute()
-             
-        elif result == "DEFEAT":
-            print("\n💀 패배했습니다...")
+            if card.image:
+                screen.blit(card.image, (card_x, start_y))
+            else:
+                # 카드 이미지가 없을 때 띄우는 하얀색 대체 네모
+                pygame.draw.rect(screen, (255, 255, 255), (card_x, start_y, 100, 150))
+                pygame.draw.rect(screen, (0, 0, 0), (card_x, start_y, 100, 150), 2) # 테두리
 
-    except Exception as e:
-        print(f"❌ 게임 진행 중 오류 발생: {e}")
+        pygame.display.flip()

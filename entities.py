@@ -1,60 +1,59 @@
 import random
 from typing import List, Optional
+import pygame
+import os
 
 # ==========================================
 # 1. 상수 및 기본 설정 (Constants)
 # ==========================================
 
-CARD_TYPES = {
-    "DIAMOND": "♦",  # 다이아몬드 모양
-    "FIRE": "🔥",    # 불꽃 모양
-    "MOON": "🌙",     # 달 모양
-    "SUN": "☀"     # 해/폭발 모양
+CARD_SUITS = ["dia", "fire", "moon", "sun"] 
+
+# 숫자(1~13)에 따른 동물/인간 영어 이름 매핑
+ZODIAC_MAP = {
+    1: "mouse", 2: "cow", 3: "tiger", 4: "rabbit",
+    5: "dragon", 6: "snake", 7: "horse", 8: "sheep",
+    9: "monkey", 10: "chicken", 11: "dog", 12: "pig",
+    13: "kbj"
 }
  
 class Card:
     """카드 한 장을 나타내는 클래스"""
-    def __init__(self, name: str, value: int, card_type: str):
-        self.name = name        # 카드 이름
-        self.value = value      # 좌측 하단 숫자 (위력)
-        self.card_type = card_type # 우측 하단 아이콘 (속성)
+    def __init__(self, value: int, suit: str):
+        self.value = value       # 숫자 (1~13)
+        self.suit = suit         # 문양 ("dia", "fire" 등)
+        self.animal = ZODIAC_MAP[value]  # "mouse", "cow" 등
+        
+        # 🌟 핵심: 파일 이름 규칙에 맞게 경로 조립! (폴더 이름이 card 라고 하셨으므로)
+        # 예: "card/1_mouse_dia.png"
+        self.image_path = f"assets/card/{self.value}_{self.animal}_{self.suit}.png"
+        
+        # 파이게임용 이미지 로드 (실제 게임 화면에 띄우기 위함)
+        self.image = None
+        try:
+            # 카드를 만들 때 이미지를 미리 불러와서 가지고 있게 합니다.
+            # 원본 크기가 크다면 pygame.transform.scale 로 크기를 줄여주세요.
+            raw_image = pygame.image.load(self.image_path)
+            self.image = pygame.transform.scale(raw_image, (100, 150)) # 예: 카드 크기 조절
+        except:
+            print(f"⚠️ 이미지 로드 실패: {self.image_path}")
 
     def __repr__(self):
-        # 출력 예: [부족민 | 2 | 자원(♦)]
-        return f"[{self.name} | {self.value} | {self.card_type}]"
+        return f"[{self.animal}({self.value}) | {self.suit}]"
 
 class Deck:
-    """52장의 카드를 관리하는 덱 클래스"""
     def __init__(self):
-        self.cards: List[Card] = []
+        self.cards = []
         self.reset()
 
     def reset(self):
         self.cards = []
-        types = list(CARD_TYPES.values())
         
-        # 숫자별 이름 (없으면 그냥 '병사'로 통일)
-        name_map = {
-            1: "test1",
-            2: "test2",
-            3: "test3",
-            4: "test4",
-            5: "test5",
-            6: "test6",
-            7: "test7",
-            8: "test8",
-            9: "test9",
-            10: "test10",
-            11: "test11",
-            12: "test12",
-            0: "test0"
-        }
-
-        for rank in range(0,13): # 1~13
-            for c_type in types:
-
-                # 2. 카드 추가
-                self.cards.append(Card(name_map[rank], rank, c_type))
+        # 1부터 13까지, 4개의 문양을 돌면서 카드를 생성합니다.
+        for rank in range(1, 14): # 1 ~ 13
+            for suit in CARD_SUITS: # "dia", "fire", "moon", "sun"
+                # Card 생성자에 숫자(rank)와 문양(suit)만 넘겨주면 알아서 이미지까지 찾아옵니다!
+                self.cards.append(Card(rank, suit))
         
         self.shuffle()
 
@@ -62,7 +61,7 @@ class Deck:
         random.shuffle(self.cards)
 
     def draw(self, count: int) -> List[Card]:
-        self.shuffle
+        self.shuffle()
         drawn_cards = []
         
         for _ in range(count):
