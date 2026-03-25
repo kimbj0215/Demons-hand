@@ -53,17 +53,17 @@ def show_map_screen(screen, user_id, user_nick, user_stage, user_hp):
     if current_world == "1":
         # 1번 맵 (Monster Forest)의 노드들
         nodes = [
-            {"code": "10", "name": "Forest Entrance",   "x": 250, "y": 550}, 
-            {"code": "11", "name": "Goblin Trail",      "x": 450, "y": 420}, # 👈 여기에 몬스터를 띄울 겁니다.
-            {"code": "12", "name": "Demon's Lair",      "x": 1000, "y": 250}, 
+            {"code": "11", "name": "",   "x": 250, "y": 550}, 
+            {"code": "12", "name": "",      "x": 550, "y": 550}, # 👈 여기에 몬스터를 띄울 겁니다.
+            {"code": "13", "name": "",      "x": 1000, "y": 250}, 
         ]
     # ... (이하 노드 세팅 로직 동일) ...
     elif current_world == "2":
         # 2번 맵 (Demon's Deep Lair)의 노드들 (방금 만든 지도 기준!)
         nodes = [
-            {"code": "20", "name": "Lair Entrance",     "x": 200, "y": 600}, 
-            {"code": "21", "name": "Demon's Outpost",   "x": 600, "y": 400}, 
-            {"code": "22", "name": "The Core of the Lair","x": 1100, "y": 200}, 
+            {"code": "21", "name": "",     "x": 200, "y": 600}, 
+            {"code": "22", "name": "",   "x": 600, "y": 400}, 
+            {"code": "23", "name": "","x": 1100, "y": 200}, 
         ]
     else:
         nodes = []
