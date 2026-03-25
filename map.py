@@ -15,23 +15,29 @@ def show_map_screen(screen, user_id, user_nick, user_stage, user_hp):
     # --- [Step 1: 이미지 로드 영역] ---
     
     bg_image = None
-    monster_img_1_1 = None # 몬스터 이미지를 담을 변수 미리 선언
+    # 🌟 변경점: 변수 여러 개 대신, 이미지를 모아둘 빈 바구니(딕셔너리)를 하나만 만듭니다!
+    monster_images = {} 
     
     try:
-        # 🌟 2. 맵 번호에 따라 배경 이미지 다르게 불러오기
         if current_world == "1": 
             bg_image = pygame.image.load("assets/map_bg01.png")
             
-            # 💡 [핵심] 1번 맵일 때, 해당 몬스터 이미지도 불러옵니다.
-            # 파일이 assets 폴더 안에 monster1-1.png 로 있어야 합니다.
-            try:
-                raw_monster_img = pygame.image.load("assets/monster1-1.png")
-                # 몬스터 크기를 노드 크기(반지름 40 -> 지름 80)에 맞춰 조절합니다.
-                # 약간 작게(60x60) 만들어서 테두리 안에 예쁘게 들어가도록 합니다.
-                monster_img_1_1 = pygame.transform.scale(raw_monster_img, (60, 60))
-            except Exception as e:
-                print(f"몬스터 이미지 로드 실패: {e}")
-                
+            # 💡 [핵심] 노드 코드("11", "12")와 그에 맞는 파일 이름을 짝지어 줍니다.
+            files_to_load = {
+                "11": "assets/monster_icon1-1.png",
+                "12": "assets/monster_icon1-2.png"
+                # 나중에 1-3 몬스터가 생기면 여기에 "13": "assets/..." 한 줄만 추가하면 끝납니다!
+            }
+            
+            # for문을 돌면서 이미지를 한 번에 싹 불러와서 바구니에 담습니다.
+            for code, file_path in files_to_load.items():
+                try:
+                    raw_img = pygame.image.load(file_path)
+                    # 크기를 60x60으로 줄여서 노드 코드("11", "12")를 열쇠로 바구니에 저장!
+                    monster_images[code] = pygame.transform.scale(raw_img, (60, 60))
+                except Exception as e:
+                    print(f"⚠️ 몬스터 이미지 로드 실패 ({file_path}): {e}")
+                    
         elif current_world == "2":
             bg_image = pygame.image.load("assets/map_bg02.png")
             # 2번 맵에 해당하는 몬스터 이미지가 있다면 여기에 추가 로드 로직 작성
@@ -99,9 +105,9 @@ def show_map_screen(screen, user_id, user_nick, user_stage, user_hp):
                 pygame.draw.circle(screen, (255, 255, 0), (node["x"], node["y"]), 40, 3) 
                 
                 # 💡 [핵심] 만약 이 노드가 "11"번(Goblin Trail)이고, 몬스터 이미지가 잘 로드되었다면 그립니다.
-                if node["code"] == "11" and monster_img_1_1:
-                    # blit 할 때 이미지를 정중앙에 맞추기 위해, x와 y 좌표에서 이미지 크기의 절반(30px)씩 빼줍니다.
-                    screen.blit(monster_img_1_1, (node["x"] - 30, node["y"] - 30))
+                if node["code"] in monster_images:
+                    img_to_draw = monster_images[node["code"]]
+                    screen.blit(img_to_draw, (node["x"] - 30, node["y"] - 30))
                 
                 # 이름 표시
                 name_surf = font.render(node["name"], True, (255, 255, 255), (0, 0, 0))

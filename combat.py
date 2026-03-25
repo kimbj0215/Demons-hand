@@ -32,6 +32,7 @@ def start_game_process(screen, user_id, user_nick, user_stage, user_hp):
     my_deck = Deck()
     p1 = Player(max_hp=user_hp)
     p1.fill_hand(my_deck) # 🌟 시작하자마자 내 손패에 카드 8장을 뽑습니다!
+    p1.sort_hand()
 
     # ==========================================
     # 2. 화면 이미지 로드
@@ -79,22 +80,37 @@ def start_game_process(screen, user_id, user_nick, user_stage, user_hp):
         player_text = font.render(f"나: {user_nick} (HP: {p1.current_hp})", True, (100, 255, 100))
         screen.blit(player_text, (50, 450))
 
-        # 🌟 4. 내 손패(카드) 주르륵 그리기
+        mouse_x, mouse_y = pygame.mouse.get_pos() 
+        
         card_width = 100
+        card_height = 150
         spacing = 20
-        # 카드가 화면 가운데에 예쁘게 정렬되도록 시작 X 좌표 계산
         total_width = len(p1.hand) * card_width + (len(p1.hand) - 1) * spacing
         start_x = (1280 - total_width) // 2 
-        start_y = 520 # 화면 맨 아래쪽
+        
+        # 카드가 놓일 기본 높이 (y좌표)
+        base_y = 520 
 
         for i, card in enumerate(p1.hand):
             card_x = start_x + (i * (card_width + spacing))
+            card_y = base_y # 기본 높이로 세팅
             
+            # [추가됨] 이 카드가 차지하는 가상의 네모 영역(Rect)을 만듭니다.
+            card_rect = pygame.Rect(card_x, card_y, card_width, card_height)
+            
+            # [추가됨] 마우스 좌표가 이 카드 영역 안에 들어왔는지 검사합니다!
+            if card_rect.collidepoint(mouse_x, mouse_y):
+                # 마우스가 닿았다면, y좌표를 30픽셀 빼서 위로 솟구치게 만듭니다!
+                card_y -= 30 
+                
+                # 마우스가 닿은 카드에 예쁜 노란색 테두리 효과를 살짝 줍니다. (선택사항)
+                pygame.draw.rect(screen, (255, 255, 0), (card_x-2, card_y-2, card_width+4, card_height+4), 3)
+
+            # 이미지를 그릴 때 base_y가 아니라, 방금 계산한 card_y를 사용합니다!
             if card.image:
-                screen.blit(card.image, (card_x, start_y))
+                screen.blit(card.image, (card_x, card_y))
             else:
-                # 카드 이미지가 없을 때 띄우는 하얀색 대체 네모
-                pygame.draw.rect(screen, (255, 255, 255), (card_x, start_y, 100, 150))
-                pygame.draw.rect(screen, (0, 0, 0), (card_x, start_y, 100, 150), 2) # 테두리
+                pygame.draw.rect(screen, (255, 255, 255), (card_x, card_y, card_width, card_height))
+                pygame.draw.rect(screen, (0, 0, 0), (card_x, card_y, card_width, card_height), 2) 
 
         pygame.display.flip()

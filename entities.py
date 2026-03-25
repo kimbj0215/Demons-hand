@@ -6,7 +6,12 @@ import os
 # ==========================================
 # 1. 상수 및 기본 설정 (Constants)
 # ==========================================
-
+SUIT_SORT_ORDER = {
+    "dia": 1,   # 다이아몬드 (♦) 가 가장 먼저!
+    "moon": 2,  # 그 다음 달 (🌙)
+    "fire": 3,  # 그 다음 불꽃 (🔥)
+    "sun": 4    # 마지막 태양 (☀)
+}
 CARD_SUITS = ["dia", "fire", "moon", "sun"] 
 
 # 숫자(1~13)에 따른 동물/인간 영어 이름 매핑
@@ -133,7 +138,24 @@ class Player:
             self.hand.extend(new_cards)
             # print(f"🎴 {draw_amount}장을 드로우하여 손패를 채웠습니다.")
         else:
-            print("✋ 손패가 이미 가득 찼습니다.")    
+            print("✋ 손패가 이미 가득 찼습니다.")  
+
+    def sort_hand(self):
+        """🌟 유저 요청대로 숫자 우선 정렬 + 같은 숫자면 문양 순서 정렬 🌟"""
+        
+        # 1. 파이썬 sort()의 key에 tuple을 넘겨줘서 정렬 기준 순서를 정합니다!
+        # key=lambda card: (1순위_정렬_기준, 2순위_정렬_기준)
+        
+        self.hand.sort(key=lambda card: (
+            # 기준 1 (최우선): 카드의 숫자(value) - 1부터 13까지 순서대로 모읍니다. (다이아 1, 불꽃 1, 달 1...)
+            card.value, 
+            
+            # 기준 2 (같은 숫자일 때): SUIT_SORT_ORDER에 정의된 문양 순서 (♦ -> 🌙 -> 🔥 -> ☀)
+            SUIT_SORT_ORDER.get(card.suit, 5) 
+        ))
+        
+        # 유저님 헷갈리지 않게 메시지 업데이트!
+        print("🗂️ 손패가 유저 요청대로 (숫자 -> 문양 순) 완벽하게 정렬되었습니다!")        
 
     def get_draw_count(self) -> int:
         # 1. 기본 장수 설정 (무조건 8장)
